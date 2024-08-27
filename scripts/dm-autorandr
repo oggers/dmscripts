@@ -1,0 +1,43 @@
+#!/usr/bin/env bash
+#
+# Script name: dm-autorandr
+# Description: Set arandr.
+# Dependencies: dmenu, fzf, rofi
+# GitLab:
+# License: https://www.gitlab.com/dwt1/dmscripts/LICENSE
+
+# Set with the flags "-e", "-u","-o pipefail" cause the script to fail
+# if certain things happen, which is a good thing.  Otherwise, we can
+# get hidden bugs that are hard to discover.
+set -euo pipefail
+
+# shellcheck disable=SC1091
+source ./_dm-helper.sh 2>/dev/null || source _dm-helper.sh 2>/dev/null
+
+source_dmscripts_configs
+
+if configs_are_different; then
+    echo "$(date): configs are different" >>"$DM_CONFIG_DIFF_LOGFILE"
+    sleep 1
+fi
+
+get_layouts() {
+    autorandr | grep " (detected)"
+    autorandr | grep --invert-match " (detected)"
+}
+
+main() {
+    _layouts="$(get_layouts)"
+
+    #layout=$( (echo "${_layouts}")  | ${MENU} "Layout:")
+    _layout="$(printf '%s\n' "${_layouts}"  | ${MENU} "Layout:")"
+    #selected=$( (echo "${_layouts}") | grep "^${_layout}$")
+    selected=$( (echo "${_layouts}") | grep "^${_layout}$")
+
+    selected=$(printf '%s' "$selected" | sed s/\\s*\(detected\)\\s*//g | sed s/\\s*\(current\)\\s*//g)
+    echo "selected $selected"
+    autorandr --load "$selected"
+}
+
+MENU="$(get_menu_program "$@")"
+[[ "${BASH_SOURCE[0]}" == "${0}" ]] && main
